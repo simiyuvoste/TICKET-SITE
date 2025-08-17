@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎫 Digital Marketplace & Ticketing</title>
+
+  <!-- PayPal SDK -->
+  <script src="https://www.paypal.com/sdk/js?client-id=AeBD7HQ7dGDhb5EhQwJBhOedonk1naY2l4puM5hbXzF6FnCD0cL16kLM_qESHaD5uvxXYDjYZg5mM83o&currency=USD"></script>
+
+  <!-- QRCode and jsPDF for tickets/downloads -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f2f5; }
+    header { background: #1e3c72; color: white; padding: 20px; text-align: center; }
+    h1, h2 { margin: 10px 0; }
+    .container { max-width: 900px; margin: auto; padding: 20px; }
+    section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+    input { padding: 8px; width: 80%; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ccc; }
+    button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; background: #1e3c72; color: white; margin-top: 5px; }
+    button:hover { background: #16335a; }
+    .ticket, .product-ticket, .service-ticket { display: none; margin-top: 15px; padding: 15px; border: 2px dashed #1e3c72; border-radius: 10px; text-align: center; background: #f9f9f9; }
+    a { color: #1e3c72; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .affiliate-list li { margin-bottom: 10px; }
+    label { display:block; margin-bottom:5px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎫 My Digital Marketplace</h1>
+  <p>Sell tickets, digital products, services & promote affiliate products</p>
+</header>
+
+<div class="container">
+
+  <!-- Ticket Section -->
+  <section id="ticket-section">
+    <h2>🎟 Buy Event Ticket</h2>
+    <label for="ticket-amount">Enter Amount (USD)</label>
+    <input type="number" id="ticket-amount" min="1" value="10" />
+    <div id="paypal-ticket-button"></div>
+    <div class="ticket" id="ticket">
+      <h3>✅ Ticket Purchased!</h3>
+      <p><strong>Ticket ID:</strong> <span id="ticket-id"></span></p>
+      <div id="ticket-qrcode"></div>
+      <button onclick="downloadTicket('ticket')">Download Ticket (PDF)</button>
+    </div>
+  </section>
+
+  <!-- Digital Products Section -->
+  <section id="products-section">
+    <h2>📚 Buy Digital Products</h2>
+    <label for="product-amount">Enter Amount (USD)</label>
+    <input type="number" id="product-amount" min="1" value="5" />
+    <div id="paypal-product-button"></div>
+    <div class="product-ticket" id="product-ticket">
+      <h3>✅ Product Purchased!</h3>
+      <p>Thank you for your purchase.</p>
+      <button onclick="downloadTicket('product-ticket')">Download Product (PDF)</button>
+    </div>
+  </section>
+
+  <!-- Service Booking Section -->
+  <section id="service-section">
+    <h2>💼 Book a Service</h2>
+    <label for="service-amount">Enter Amount (USD)</label>
+    <input type="number" id="service-amount" min="1" value="20" />
+    <div id="paypal-service-button"></div>
+    <div class="service-ticket" id="service-ticket">
+      <h3>✅ Service Booked!</h3>
+      <p>Thank you! We will contact you soon.</p>
+      <button onclick="downloadTicket('service-ticket')">Download Receipt (PDF)</button>
+    </div>
+  </section>
+
+  <!-- Affiliate Section -->
+  <section id="affiliate-section">
+    <h2>💰 Affiliate Products</h2>
+    <ul class="affiliate-list">
+      <li><a href="https://www.amazon.com/dp/B09XYZ" target="_blank">Amazon Product 1</a></li>
+      <li><a href="https://www.udemy.com/course/xyz" target="_blank">Udemy Course</a></li>
+      <li><a href="https://www.jumia.com/xyz" target="_blank">Jumia Product</a></li>
+    </ul>
+  </section>
+
+</div>
+
+<script>
+function generatePDF(contentId, title) {
+  const { jsPDF } = window.jspdf;
+  let doc = new jsPDF();
+  doc.setFontSize(18);
+  doc.text(title, 20, 20);
+  doc.setFontSize(12);
+  let textContent = document.getElementById(contentId).innerText;
+  doc.text(textContent, 20, 40);
+  doc.save(title + ".pdf");
+}
+
+function downloadTicket(type) {
+  let title = "";
+  if(type === 'ticket') title = "Event Ticket";
+  if(type === 'product-ticket') title = "Digital Product Receipt";
+  if(type === 'service-ticket') title = "Service Receipt";
+  generatePDF(type, title);
+}
+
+// PayPal Buttons Setup (no shipping/address)
+paypal.Buttons({
+  createOrder: function(data, actions) {
+    let amount = document.getElementById("ticket-amount").value;
+    if(!amount || amount<1){alert("Enter valid amount"); return;}
+    return actions.order.create({purchase_units:[{amount:{value:amount}}]});
+  },
+  onApprove: function(data, actions) {
+    return actions.order.capture().then(function(details){
+      let ticketId = "TICKET-"+Math.floor(Math.random()*1000000);
+      document.getElementById("ticket-id").innerText = ticketId;
+      document.getElementById("ticket").style.display = "block";
+      new QRCode(document.getElementById("ticket-qrcode"), ticketId);
+    });
+  }
+}).render("#paypal-ticket-button");
+
+paypal.Buttons({
+  createOrder: function(data, actions) {
+    let amount = document.getElementById("product-amount").value;
+    if(!amount || amount<1){alert("Enter valid amount"); return;}
+    return actions.order.create({purchase_units:[{amount:{value:amount}}]});
+  },
+  onApprove: function(data, actions) {
+    return actions.order.capture().then(function(details){
+      document.getElementById("product-ticket").style.display = "block";
+    });
+  }
+}).render("#paypal-product-button");
+
+paypal.Buttons({
+  createOrder: function(data, actions) {
+    let amount = document.getElementById("service-amount").value;
+    if(!amount || amount<1){alert("Enter valid amount"); return;}
+    return actions.order.create({purchase_units:[{amount:{value:amount}}]});
+  },
+  onApprove: function(data, actions) {
+    return actions.order.capture().then(function(details){
+      document.getElementById("service-ticket").style.display = "block";
+    });
+  }
+}).render("#paypal-service-button");
+
+</script>
+
+</body>
+</html>
